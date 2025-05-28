@@ -10,6 +10,9 @@ from datetime import datetime
 import csv
 import time as t
 from telegram import Bot
+from telegram import Update
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+import asyncio
 
 def getDriver(url):
     # Set up the Firefox Profile
@@ -75,11 +78,13 @@ def getUrls():
     driver.quit()
     return urls
 
-def getBot():
+async def notifyOddsChange(bot, message, chat_id):
+    await bot.send_message(chat_id=chat_id, text=message)
+
+async def main():
     BOT_TOKEN = ""
     CHAT_ID = ""
-
-def main():
+    bot = Bot(token=BOT_TOKEN)
     dogs = []
     with open('signals.csv', newline='\n') as csvfile:
         reader = csv.reader(csvfile)
@@ -113,7 +118,8 @@ def main():
             try:
                 odd = odds.text
                 if odd != curOdds[dog]:
-                    print(f"Odds for {dog}: {location} {time.strftime('%H:%M')} changed from {curOdds[dog]} to {odd}")
+                    # print(f"Odds for {dog}: {location} {time.strftime('%H:%M')} changed from {curOdds[dog]} to {odd}")
+                    await notifyOddsChange(bot, f"{dog} {location} {time}: {curOdds[dog]} -> {odd}", CHAT_ID)
                     curOdds[dog] = odd
                 if time > timeNow and curOdds[dog] == "SP":
                     drivers.append((dog, location, time, odds, driver))
@@ -132,4 +138,4 @@ def main():
         driver.quit()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
